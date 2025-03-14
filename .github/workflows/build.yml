@@ -1,0 +1,64 @@
+name: Build and Release Theme
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+    
+    - name: Install Composer dependencies
+      run: composer install --no-dev --optimize-autoloader
+    
+    - name: Create theme package
+      run: |
+        zip -r argon-theme.zip . \
+        -x "*.git*" \
+        -x "node_modules/*" \
+        -x "docker/*" \
+        -x "docker-compose.yml" \
+        -x "package.json" \
+        -x "package-lock.json" \
+        -x "yarn.lock" \
+        -x "composer.phar" \
+        -x ".github/*" \
+        -x ".gitignore" \
+        -x ".gitattributes" \
+        -x "README*.md" \
+        -x "CHANGELOG.md" \
+        -x ".vscode/*" \
+        -x ".idea/*" \
+        -x ".DS_Store" \
+        -x "*.log" \
+        -x "*.zip"
+    
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+    
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./argon-theme.zip
+        asset_name: argon-theme.zip
+        asset_content_type: application/zip 

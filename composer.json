@@ -3,12 +3,19 @@
     "description": "A light, simple and beautiful WordPress theme",
     "type": "project",
     "require": {
-        "haozi-team/chatgpt-php": "^2.0"
+        "haozi-team/chatgpt-php": "^2.0",
+        "ralouphie/getallheaders": "^3.0",
+        "php": ">=7.4"
     },
     "license": "GPLv3",
     "authors": [
         {
             "name": "solstice23"
         }
-    ]
+    ],
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
+    }
 }

@@ -1,0 +1,15 @@
+{
+  "name": "argon-theme",
+  "version": "2.0.0",
+  "description": "Argon WordPress Theme Development Environment",
+  "scripts": {
+    "start": "docker-compose up",
+    "stop": "docker-compose down",
+    "build": "docker-compose exec wordpress wp theme activate argon-theme",
+    "watch": "nodemon --watch . --ext php,css,js --ignore node_modules/ --ignore vendor/"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}

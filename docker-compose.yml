@@ -1,0 +1,93 @@
+version: '3'
+
+services:
+  wordpress:
+    image: wordpress:php8.3-apache
+    ports:
+      - "8000:80"
+    environment:
+      # WordPress 数据库设置
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: ${WP_DB_NAME:-wordpress}
+      WORDPRESS_DB_USER: ${WP_DB_USER:-wordpress}
+      WORDPRESS_DB_PASSWORD: ${WP_DB_PASSWORD:-wordpress}
+      # WordPress 调试模式
+      WORDPRESS_DEBUG: ${WP_DEBUG:-1}
+      # WordPress 安全密钥
+      WORDPRESS_AUTH_KEY: ${WP_AUTH_KEY:-'put your unique phrase here'}
+      WORDPRESS_SECURE_AUTH_KEY: ${WP_SECURE_AUTH_KEY:-'put your unique phrase here'}
+      WORDPRESS_LOGGED_IN_KEY: ${WP_LOGGED_IN_KEY:-'put your unique phrase here'}
+      WORDPRESS_NONCE_KEY: ${WP_NONCE_KEY:-'put your unique phrase here'}
+      WORDPRESS_AUTH_SALT: ${WP_AUTH_SALT:-'put your unique phrase here'}
+      WORDPRESS_SECURE_AUTH_SALT: ${WP_SECURE_AUTH_SALT:-'put your unique phrase here'}
+      WORDPRESS_LOGGED_IN_SALT: ${WP_LOGGED_IN_SALT:-'put your unique phrase here'}
+      WORDPRESS_NONCE_SALT: ${WP_NONCE_SALT:-'put your unique phrase here'}
+      # 站点 URL 设置
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_SITEURL', 'http://localhost:8000');
+        define('WP_HOME', 'http://localhost:8000');
+        define('WP_CACHE', true);
+        define('WP_HTTP_BLOCK_EXTERNAL', false);
+        define('ALTERNATE_WP_CRON', true);
+    volumes:
+      # WordPress 核心文件持久化（排除主题目录）
+      - wp_core:/var/www/html
+      # 主题目录直接映射（开发用）
+      - .:/var/www/html/wp-content/themes/argon-theme
+      # WordPress 上传文件持久化
+      - wp_uploads:/var/www/html/wp-content/uploads
+      # WordPress 插件持久化
+      - wp_plugins:/var/www/html/wp-content/plugins
+      # PHP 配置文件
+      - ./docker/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+      # Apache 配置文件
+      - ./docker/apache/cache.conf:/etc/apache2/conf-available/cache.conf
+    depends_on:
+      - db
+    command: >
+      bash -c "
+        apt-get update && 
+        apt-get install -y zip unzip git ca-certificates curl apache2-utils &&
+        update-ca-certificates &&
+        a2enmod headers expires rewrite &&
+        a2enconf cache &&
+        cd /var/www/html/wp-content/themes/argon-theme &&
+        rm -rf vendor composer.lock &&
+        php -r \"copy('https://getcomposer.org/installer', 'composer-setup.php');\" &&
+        php composer-setup.php &&
+        php -r \"unlink('composer-setup.php');\" &&
+        COMPOSER_ALLOW_SUPERUSER=1 php composer.phar install --no-dev --optimize-autoloader &&
+        chown -R www-data:www-data /var/www/html/wp-content/themes/argon-theme &&
+        if [ ! -f /var/www/html/index.php ]; then
+          cp -a /usr/src/wordpress/. /var/www/html/
+        fi &&
+        echo 'ServerName localhost' >> /etc/apache2/apache2.conf &&
+        chown -R www-data:www-data /var/www/html &&
+        apache2-foreground
+      "
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  db:
+    image: mysql:8.0
+    command: mysqld --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_DATABASE: ${WP_DB_NAME:-wordpress}
+      MYSQL_USER: ${WP_DB_USER:-wordpress}
+      MYSQL_PASSWORD: ${WP_DB_PASSWORD:-wordpress}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-somewordpress}
+    volumes:
+      - ./docker/mysql:/var/lib/mysql
+    cap_add:
+      - SYS_NICE
+
+  cache:
+    image: redis:alpine
+    volumes:
+      - redis_data:/data
+
+volumes:
+  wp_core:
+  wp_uploads:
+  wp_plugins:
+  redis_data: 
