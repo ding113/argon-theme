@@ -68,37 +68,12 @@ if ( !class_exists('Puc_v4p8_Vcs_GitHubApi', false) ):
 			$reference = new Puc_v4p8_Vcs_Reference(array(
 				'name'        => $release->tag_name,
 				'version'     => ltrim($release->tag_name, 'v'), //Remove the "v" prefix from "v1.2.3".
-				'downloadUrl' => $this->signDownloadUrl($release->zipball_url),
-				'updated'     => $release->created_at,
+				'downloadUrl' => $release->zipball_url, // 使用 zipball_url 而不是 assets
+				'updated'     => $release->published_at,
 				'apiResponse' => $release,
 			));
 
-			if ( isset($release->assets[0]) ) {
-				$reference->downloadCount = $release->assets[0]->download_count;
-			}
-
-			if ( $this->releaseAssetsEnabled && isset($release->assets, $release->assets[0]) ) {
-				//Use the first release asset that matches the specified regular expression.
-				$matchingAssets = array_filter($release->assets, array($this, 'matchesAssetFilter'));
-				if ( !empty($matchingAssets) ) {
-					if ( $this->isAuthenticationEnabled() ) {
-						/**
-						 * Keep in mind that we'll need to add an "Accept" header to download this asset.
-						 * @see setReleaseDownloadHeader()
-						 */
-						$reference->downloadUrl = $this->signDownloadUrl($matchingAssets[0]->url);
-					} else {
-						//It seems that browser_download_url only works for public repositories.
-						//Using an access_token doesn't help. Maybe OAuth would work?
-						$reference->downloadUrl = $matchingAssets[0]->browser_download_url;
-					}
-
-					$reference->downloadCount = $matchingAssets[0]->download_count;
-				}
-			}
-
 			if ( !empty($release->body) ) {
-				/** @noinspection PhpUndefinedClassInspection */
 				$reference->changelog = Parsedown::instance()->text($release->body);
 			}
 

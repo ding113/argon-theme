@@ -9,7 +9,9 @@ function theme_slug_setup() {
 }
 add_action('after_setup_theme','theme_slug_setup');
 
-$argon_version = !(wp_get_theme() -> Template) ? wp_get_theme() -> Version : wp_get_theme(wp_get_theme() -> Template) -> Version;
+// 从 package.json 读取版本号
+$package_json = json_decode(file_get_contents(get_template_directory() . '/package.json'), true);
+$argon_version = $package_json['version'];
 $GLOBALS['theme_version'] = $argon_version;
 $argon_assets_path = get_option("argon_assets_path");
 switch ($argon_assets_path) {
@@ -97,39 +99,14 @@ if (version_compare($argon_last_version, $GLOBALS['theme_version'], '<' )){
 
 //检测更新
 require_once(get_template_directory() . '/theme-update-checker/plugin-update-checker.php');
-$argon_update_source = get_option('argon_update_source');
-switch ($argon_update_source) {
-	case "stop":
-		break;
-    case "fastgit":
-	    $argonThemeUpdateChecker = Puc_v4_Factory::buildUpdateChecker(
-			'https://api.solstice23.top/argon/info.json?source=fastgit',
-			get_template_directory() . '/functions.php',
-			'argon'
-		);
-        break;
-    case "cfworker":
-	    $argonThemeUpdateChecker = Puc_v4_Factory::buildUpdateChecker(
-			'https://api.solstice23.top/argon/info.json?source=cfworker',
-			get_template_directory() . '/functions.php',
-			'argon'
-		);
-        break;
-	case "solstice23top":
-		$argonThemeUpdateChecker = Puc_v4_Factory::buildUpdateChecker(
-			'https://api.solstice23.top/argon/info.json?source=0',
-			get_template_directory() . '/functions.php',
-			'argon'
-		);
-		break;
-	case "github":
-    default:
-		$argonThemeUpdateChecker = Puc_v4_Factory::buildUpdateChecker(
-			'https://raw.githubusercontent.com/solstice23/argon-theme/master/info.json',
-			get_template_directory() . '/functions.php',
-			'argon'
-		);
-}
+$argonThemeUpdateChecker = Puc_v4_Factory::buildUpdateChecker(
+	'https://github.com/ding113/argon-theme',
+	get_template_directory() . '/functions.php',
+	'argon',
+	12 // 检查更新的时间间隔（小时）
+);
+$argonThemeUpdateChecker->setBranch('main');
+$argonThemeUpdateChecker->getVcsApi()->enableReleaseAssets();
 
 //初次使用时发送安装量统计信息 (数据仅用于统计安装量)
 function post_analytics_info(){
